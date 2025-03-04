@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e  # Exit on error
+
+echo "Starting Kafka..."
+echo ""
+
+# Set default values if not provided
+export KAFKA_PROCESS_ROLES="broker,controller"
+export KAFKA_NODE_ID="${KAFKA_NODE_ID:-1}"
+export KAFKA_CONTROLLER_QUORUM_VOTERS="1@${MY_POD_NAME}:9094"
+export KAFKA_SECURITY_PROTOCOL_MAP="SSL:SSL,CONTROLLER:PLAINTEXT"
+export KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="SSL:SSL,CONTROLLER:PLAINTEXT"
+export KAFKA_INTER_BROKER_LISTENER_NAME="SSL"
+export KAFKA_CONTROLLER_LISTENER_NAMES="CONTROLLER"
+export KAFKA_AUTO_CREATE_TOPICS_ENABLE="true"
+
+# Set TLS settings dynamically
+export KAFKA_LISTENERS="SSL://0.0.0.0:9093,CONTROLLER://0.0.0.0:9094"
+export KAFKA_ADVERTISED_LISTENERS="SSL://${KUBERNETES_SERVICE_NAME}.${KUBERNETES_NAMESPACE}.svc.cluster.local:${CLUSTER_PORT}"
+export KAFKA_SSL_KEYSTORE_LOCATION="${KAFKA_CERTS}/${KUBERNETES_SERVICE_NAME}.${KUBERNETES_NAMESPACE}.jks"
+export KAFKA_SSL_KEYSTORE_FILENAME="${KUBERNETES_SERVICE_NAME}.${KUBERNETES_NAMESPACE}.jks"
+export KAFKA_SSL_TRUSTSTORE_LOCATION="${KAFKA_CERTS}/truststore.jks"
+export KAFKA_SSL_TRUSTSTORE_FILENAME="truststore.jks"
+export KAFKA_SSL_ENABLED_PROTOCOLS="TLSv1.2,TLSv1.3"
+export KAFKA_SSL_KEYSTORE_TYPE="JKS"
+export KAFKA_SSL_TRUSTSTORE_TYPE="JKS"
+export KAFKA_SSL_CLIENT_AUTH="required"
+
+# Check if keystore/truststore exist
+if [[ ! -f "$KAFKA_SSL_KEYSTORE_LOCATION" || ! -f "$KAFKA_SSL_TRUSTSTORE_LOCATION" ]]; then
+    echo "❌ Keystore or Truststore is missing. Exiting..."
+    exit 1
+fi
+
+# Start Kafka
+exec /etc/confluent/docker/run

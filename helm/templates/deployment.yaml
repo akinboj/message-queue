@@ -1,0 +1,127 @@
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  annotations:
+    fabric8.io/metrics-path: dashboard/file/camel-routes.json/?var-project={{ .Values.serviceName }}&var-version={{ .Values.imageTag }}
+  labels:
+    app: {{ .Values.serviceName }}
+    version: "{{ .Values.imageTag }}"
+  name: {{ .Values.serviceName }}
+spec:
+  replicas: {{ .Values.numOfPods | default 2 }}
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: {{ .Values.serviceName }}
+  template:
+    metadata:
+      annotations:
+        fabric8.io/metrics-path: dashboard/file/camel-routes.json/?var-project={{ .Values.serviceName }}&var-version={{ .Values.imageTag }}
+      labels:
+        app: {{ .Values.serviceName }}
+        version: "{{ .Values.imageTag }}"
+        date: "{{ date "20060102-150405" .Release.Time }}"
+    spec:
+      {{- if (.Values.acrSecretName) }} 
+      imagePullSecrets:
+        - name: {{ .Values.acrSecretName }}
+      {{- end }}
+      containers:
+      - env:
+        - name: CLUSTER_PORT
+          value: "{{ .Values.basePort }}"
+        - name: CLUSTER_ID
+          value: "{{ .Values.clusterId }}"
+        - name: KAFKA_SSL_KEYSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.serviceName }}-secrets
+              key: keyPassword
+        - name: KAFKA_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.serviceName }}-secrets
+              key: truststorePassword
+        - name: KAFKA_SSL_KEY_CREDENTIALS
+          value: "keystore-password-file"
+        - name: KAFKA_SSL_KEYSTORE_CREDENTIALS
+          value: "keystore-password-file"
+        - name: KAFKA_SSL_TRUSTSTORE_CREDENTIALS
+          value: "truststore-password-file"
+        {{- if (.Values.dnsEntry) }} 
+        - name: DNS_ENTRY
+          value: {{ .Values.dnsEntry }}
+        - name: {{ upper .Values.serviceName | replace "-" "_" }}_{{ upper .Release.Namespace | replace "-" "_" }}_DNS_ENTRY
+          value: {{ .Values.dnsEntry }}
+        {{- end }}
+        {{- if (.Values.externalDnsEntry) }} 
+        - name: EXTERNAL_DNS_ENTRY
+          value: {{ .Values.externalDnsEntry }}
+        - name: {{ upper .Values.serviceName | replace "-" "_" }}_{{ upper .Release.Namespace | replace "-" "_" }}_EXTERNAL_DNS_ENTRY
+          value: {{ .Values.externalDnsEntry }}
+        {{- end }}
+        - name: KUBERNETES_SERVICE_NAME
+          value: {{ .Values.serviceName }}
+        - name: {{ upper .Values.serviceName | replace "-" "_" }}_{{ upper .Release.Namespace | replace "-" "_" }}_KUBERNETES_SERVICE_NAME
+          value: {{ .Values.serviceName }}
+        - name: KUBERNETES_NAMESPACE
+          value: {{ .Release.Namespace }}
+        - name: {{ upper .Values.serviceName | replace "-" "_" }}_{{ upper .Release.Namespace | replace "-" "_" }}_KUBERNETES_NAMESPACE
+          value: {{ .Release.Namespace }}
+        - name: HELM_RELEASE_TIME
+          value: "{{ date "20060102-150405" .Release.Time }}"
+        - name: MY_HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: {{ .Values.dockerRepo }}curis-data-broker:{{ .Values.imageTag }}            
+        imagePullPolicy: {{ .Values.imagePullPolicy | default "IfNotPresent" }}
+        livenessProbe:
+          tcpSocket:
+            port: 9093
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        name: kafka-message-queue
+        ports:
+        - containerPort: 9093
+          name: https
+          protocol: TCP
+        - containerPort: 9094
+          name: controller
+          protocol: TCP
+        - containerPort: 2181
+          name: zookeeper
+          protocol: TCP
+        - containerPort: 9779
+          name: prometheus
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 9093
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        securityContext:
+          privileged: false
+        volumeMounts:
+        - name: kafka-data
+          mountPath: /var/lib/kafka/data
+        - name: kafka-secrets
+          mountPath: /etc/kafka/secrets
+          readOnly: true  
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 30 }}
+      volumes:
+      - name: kafka-data
+        hostPath:
+          path: {{ .Values.hostPathKafkaData }}
+      - name: kafka-secrets
+        secret:
+          secretName: {{ .Values.serviceName }}-secrets
