@@ -1,2 +1,2 @@
 # message-queue
-message-queue
+A Kafka microservice for the Digital Twin ecosystem, running Apache Kafka via Confluent’s cp-kafka. Deployed as a single service in Kubernetes, it streams healthcare events securely over TLS. Backed by persistent storage, this broker powers real-time patient twin data flow.
