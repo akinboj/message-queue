@@ -33,16 +33,6 @@ spec:
           value: "{{ .Values.basePort }}"
         - name: CLUSTER_ID
           value: "{{ .Values.clusterId }}"
-        - name: KAFKA_SSL_KEYSTORE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.serviceName }}-secrets
-              key: keyPassword
-        - name: KAFKA_SSL_TRUSTSTORE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.serviceName }}-secrets
-              key: truststorePassword
         - name: KAFKA_SSL_KEY_CREDENTIALS
           value: "keystore-password-file"
         - name: KAFKA_SSL_KEYSTORE_CREDENTIALS
@@ -71,10 +61,10 @@ spec:
           value: {{ .Release.Namespace }}
         - name: HELM_RELEASE_TIME
           value: "{{ date "20060102-150405" .Release.Time }}"
-        - name: MY_HOST_IP
+        - name: MY_POD_IP
           valueFrom:
             fieldRef:
-              fieldPath: status.hostIP
+              fieldPath: status.podIP
         - name: MY_NODE_NAME
           valueFrom:
             fieldRef:
