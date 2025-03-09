@@ -29,7 +29,7 @@ spec:
       {{- end }}
       containers:
       - env:
-        - name: CLUSTER_PORT
+        - name: BROKER_PORT
           value: "{{ .Values.basePort }}"
         - name: CLUSTER_ID
           value: "{{ .Values.clusterId }}"
@@ -83,13 +83,10 @@ spec:
         name: kafka-message-queue
         ports:
         - containerPort: 9093
-          name: https
+          name: broker
           protocol: TCP
         - containerPort: 9094
           name: controller
-          protocol: TCP
-        - containerPort: 2181
-          name: zookeeper
           protocol: TCP
         - containerPort: 9779
           name: prometheus
