@@ -9,13 +9,15 @@ metadata:
     # From https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/rfc2136.md
     external-dns.alpha.kubernetes.io/hostname: {{ .Values.dnsEntry }}
     {{- end }}
+    prometheus.io/port: "9779"
+    prometheus.io/scrape: "true"
   labels:
     app: {{ .Values.serviceName }}
     version: "{{ .Values.imageTag }}"
   name: {{ .Values.serviceName }}
 spec:
   ports:
-  - name: https
+  - name: broker
     port: {{ add 0 .Values.basePort }}
     protocol: TCP
     targetPort: 9093
