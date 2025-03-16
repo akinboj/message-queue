@@ -12,15 +12,11 @@ ENV TZ="Australia/Sydney"
 
 USER root
 
-# Install curl if it's not already present.
-RUN microdnf install -y curl
-
-# Download and install gosu. <will be used later to switch to non-root user>
-RUN curl -L https://github.com/tianon/gosu/releases/download/1.16/gosu-amd64 > /usr/local/bin/gosu && \
-    chmod +x /usr/local/bin/gosu
-
-# Install nc (netcat)
-RUN microdnf install -y nc && microdnf clean all
+# Install gosu for Red Hat (amd64/arm64-compatible)
+RUN microdnf install -y curl && \
+    ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+    curl -fsSL "https://github.com/tianon/gosu/releases/download/1.16/gosu-$ARCH" -o /usr/local/bin/gosu && \
+    chmod +x /usr/local/bin/gosu || { echo "Error installing gosu" ; exit 1; }
 
 # Ensure Kafka has the right permissions
 RUN mkdir -p /var/lib/kafka/data && \
@@ -29,9 +25,6 @@ RUN mkdir -p /var/lib/kafka/data && \
 # Copy start script
 COPY start-kafka.sh /usr/local/bin/start-kafka.sh
 RUN chmod +x /usr/local/bin/start-kafka.sh
-
-# Switch to non-root user
-# USER appuser
 
 # Entry point
 ENTRYPOINT ["/usr/local/bin/start-kafka.sh"]
